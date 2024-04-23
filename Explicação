@@ -1,0 +1,14 @@
+Projeto da matéria de Estruturas Matemáticas.
+
+Sistema de manipulação de imagem
+  Realizado em Python.
+
+O projeto tem como foco, ler e alterar a imagem com funções como
+  Rotação; 
+  Preto e Branco;
+  Transladar;
+  Espelhar;
+  Escalar;
+  Retornar a original.
+
+Com isso, é possivel alterar e atualizar as imagens, de maneira pratica e visual.
