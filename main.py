@@ -1,187 +1,181 @@
-import sys
-import cv2
+#O código foi atualizado com algumas funções novas e levemente customizado!!
+
+import tkinter as tk
+from tkinter import filedialog, simpledialog, messagebox
+from PIL import Image, ImageTk, ImageOps
 import numpy as np
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QLabel, QFileDialog
-from PyQt5.QtGui import QPixmap, QImage
-from PyQt5.QtCore import Qt
 
 
-class ImageApp(QWidget):
-    def __init__(self):
-        super().__init__()
+class ImageEditorApp:
+    MAX_WIDTH = 1920
+    MAX_HEIGHT = 1080
+    DISPLAY_WIDTH = 630
+    DISPLAY_HEIGHT = 360
+
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Editor de Imagens Avançado")
+        # Alterando o fundo geral do aplicativo para um cinza mais claro
+        self.root.configure(bg="#003c5f")
+
+        # Fonte para os títulos
+        title_font = ("Helvetica", 16, "bold")
+
+        # Frame para a imagem original
+        self.original_frame = tk.Frame(
+            root, bg="#ffffff", padx=10, pady=10, borderwidth=1, relief="solid")
+        self.original_frame.grid(
+            row=0, column=0, padx=10, pady=10, sticky="nsew")
+        self.original_img_label = tk.Label(
+            self.original_frame, text="Imagem Original", bg="#ffffff", font=title_font)
+        self.original_img_label.grid(row=0, column=0, padx=10, pady=5)
+        self.original_img_widget = tk.Label(self.original_frame, bg="#ffffff")
+        self.original_img_widget.grid(row=1, column=0, padx=10, pady=5)
+
+        # Frame para a imagem editável
+        self.editable_frame = tk.Frame(
+            root, bg="#ffffff", padx=10, pady=10, borderwidth=1, relief="solid")
+        self.editable_frame.grid(
+            row=0, column=1, padx=10, pady=10, sticky="nsew")
+        self.editable_img_label = tk.Label(
+            self.editable_frame, text="Imagem Editável", bg="#ffffff", font=title_font)
+        self.editable_img_label.grid(row=0, column=0, padx=10, pady=5)
+        self.editable_img_widget = tk.Label(self.editable_frame, bg="#ffffff")
+        self.editable_img_widget.grid(row=1, column=0, padx=10, pady=5)
+
+        # Label para exibir as dimensões da imagem
+        self.image_size_label = tk.Label(
+            root, text="Tamanho da Imagem: ", bg="#0f79ba", font=("Helvetica", 12))
+        self.image_size_label.grid(
+            row=1, column=1, padx=10, pady=5, sticky="w")
+
+        # Frame para os botões
+        # Alterando a cor do fundo dos botões para um cinza mais claro
+        self.button_frame = tk.Frame(root, bg="#0f79ba")
+        self.button_frame.grid(row=2, column=0, columnspan=2,
+                               sticky="we", padx=10, pady=10)
+
+        # Botões
+        self.create_button("Carregar Imagem", self.load_image)
+        self.create_button("Resetar", self.reset_image)
+
+        # Frame para os botões de opções
+        # Alterando a cor do fundo dos botões de opções para um cinza mais claro
+        self.option_button_frame = tk.Frame(root, bg="#0f79ba")
+        self.option_button_frame.grid(
+            row=3, column=0, columnspan=2, sticky="we", padx=10, pady=10)
+
+        self.create_button("Rotacionar 90°", lambda: self.transform_image(
+            "rotate_90"), self.option_button_frame)
+        self.create_button("Inverter Horizontal", lambda: self.transform_image(
+            "flip_horizontal"), self.option_button_frame)
+        self.create_button("Inverter Vertical", lambda: self.transform_image(
+            "flip_vertical"), self.option_button_frame)
+        self.create_button("Preto e Branco", lambda: self.transform_image(
+            "bw"), self.option_button_frame)
+        self.create_button("Transladar", self.translate_image,
+                           self.option_button_frame)
+        self.create_button("Redimensionar", self.resize_image,
+                           self.option_button_frame)
+        self.create_button("Salvar Imagem", self.save_image,
+                           self.option_button_frame)
+
+        # Variáveis para armazenar a imagem original e editável
+        self.original_image = None
         self.image = None
-        self.modified_image = None
-        self.initUI()
 
-    def initUI(self):
-        self.setGeometry(100, 100, 1200, 600)  # Aumentando o tamanho da janela
-        self.setWindowTitle('Manipulador de Imagens Avançado com PyQt5')
+    def create_button(self, text, command, parent_frame=None):
+        """ Helper para criar botões """
+        frame = parent_frame if parent_frame else self.button_frame
+        btn = tk.Button(frame, text=text, command=command, bg="#0f79ba", fg="#ffffff", font=(
+            "Helvetica", 12), padx=10, pady=5, bd=0, relief="flat", highlightthickness=0, cursor="hand2", borderwidth=3)
+        btn.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.setStyleSheet("""
-            background-color: #f7f5f5;
-            QPushButton {
-                background-color: #000000;
-                border: 2px solid #000000;
-                border-radius: 10px;
-                color: white;
-                padding: 8px 16px;
-                font-size: 16px;
-            }
-            QPushButton:hover {
-                background-color: #8B0000;
-                border-color: #8B0000;
-            }
-        """)
+    def load_image(self):
+        """ Carregar e exibir imagem """
+        file_path = filedialog.askopenfilename()
+        if file_path:
+            original_image = Image.open(file_path)
+            self.original_image = original_image.copy()
+            self.image = self.original_image.copy()
+            self.update_images()
 
-        main_layout = QVBoxLayout()  # Layout principal
+    def update_images(self):
+        """ Atualizar a exibição das imagens """
+        self.original_photo = ImageTk.PhotoImage(self.original_image.resize(
+            (self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT)))
+        self.photo = ImageTk.PhotoImage(self.image.resize(
+            (self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT)))
+        self.original_img_widget.config(image=self.original_photo)
+        self.editable_img_widget.config(image=self.photo)
 
-        # Layout para as imagens
-        images_layout = QHBoxLayout()
-        self.originalImageLabel = QLabel('Aqui será exibida sua imagem original')
-        self.originalImageLabel.setAlignment(Qt.AlignCenter)
-        images_layout.addWidget(self.originalImageLabel)
+        # Atualizando o tamanho da imagem exibido na label
+        if self.image:
+            self.image_size_label.config(text=f"Tamanho da Imagem: {
+                                         self.image.width}x{self.image.height}")
+        else:
+            self.image_size_label.config(text="Tamanho da Imagem: ")
 
-        self.modifiedImageLabel = QLabel('Aqui será exibida sua imagem editada')
-        self.modifiedImageLabel.setAlignment(Qt.AlignCenter)
-        images_layout.addWidget(self.modifiedImageLabel)
-        main_layout.addLayout(images_layout)
+    def transform_image(self, action):
+        """ Aplicar transformações na imagem """
+        if self.image:
+            if action == "rotate_90":
+                self.image = self.image.rotate(90, expand=True)
+            elif action == "flip_horizontal":
+                self.image = ImageOps.mirror(self.image)
+            elif action == "flip_vertical":
+                self.image = ImageOps.flip(self.image)
+            elif action == "bw":
+                self.image = self.image.convert("L")
+            self.update_images()
+        else:
+            messagebox.showerror("Erro", "Nenhuma imagem carregada!")
 
-        # Layout para os botões
-        btns_layout = QHBoxLayout()
-        btns_layout.setAlignment(Qt.AlignCenter)
+    def translate_image(self):
+        """ Transladar a imagem """
+        if self.image:
+            x = simpledialog.askinteger(
+                "Transladar", "X offset:", parent=self.root)
+            y = simpledialog.askinteger(
+                "Transladar", "Y offset:", parent=self.root)
+            if x is not None and y is not None:
+                translated = Image.new("RGB", self.image.size)
+                translated.paste(self.image, (x, y))
+                self.image = translated
+                self.update_images()
 
-        self.createButtons(btns_layout)  # Adiciona os botões ao layout
-        main_layout.addLayout(btns_layout)
+    def resize_image(self):
+        """ Redimensionar a imagem """
+        if self.image:
+            width = simpledialog.askinteger(
+                "Redimensionar", "Nova largura:", parent=self.root)
+            height = simpledialog.askinteger(
+                "Redimensionar", "Nova altura:", parent=self.root)
+            if width is not None and height is not None:
+                img_array = np.array(self.image)
+                resized_img_array = np.array(Image.fromarray(
+                    img_array).resize((width, height)))
+                self.image = Image.fromarray(resized_img_array)
+                self.update_images()
 
-        self.setLayout(main_layout)
+    def reset_image(self):
+        """ Resetar a imagem para o original """
+        if self.original_image:
+            self.image = self.original_image.copy()
+            self.update_images()
 
-    def createButtons(self, layout):
-        layout.setSpacing(20)
-
-        self.btnLoad = QPushButton('Carregar Imagem')
-        self.btnLoad.clicked.connect(self.loadImage)
-        layout.addWidget(self.btnLoad)
-
-        self.btnBlackWhite = QPushButton('Preto e Branco')
-        self.btnBlackWhite.clicked.connect(self.convertToBlackWhite)
-        layout.addWidget(self.btnBlackWhite)
-
-        self.btnRotate = QPushButton('Rotacionar')
-        self.btnRotate.clicked.connect(self.rotateImage)
-        layout.addWidget(self.btnRotate)
-
-        self.btnScale = QPushButton('Escalar')
-        self.btnScale.clicked.connect(self.scaleImage)
-        layout.addWidget(self.btnScale)
-
-        self.btnTranslate = QPushButton('Transladar')
-        self.btnTranslate.clicked.connect(self.translateImage)
-        layout.addWidget(self.btnTranslate)
-
-        self.btnFlip = QPushButton('Espelhar Original')
-        self.btnFlip.clicked.connect(self.flipOriginalImage)
-        layout.addWidget(self.btnFlip)
-
-        self.btnFlipModified = QPushButton('Espelhar Editada')
-        self.btnFlipModified.clicked.connect(self.flipModifiedImage)
-        layout.addWidget(self.btnFlipModified)
-
-        self.btnResetModified = QPushButton('Resetar Editada')
-        self.btnResetModified.clicked.connect(self.resetModifiedImage)
-        layout.addWidget(self.btnResetModified)
-
-        self.btnSave = QPushButton('Salvar Imagem')
-        self.btnSave.clicked.connect(self.saveImage)
-        layout.addWidget(self.btnSave)
-
-    def displayOriginalImage(self, img):
-        """Atualiza o QLabel com uma nova imagem original."""
-        qformat = QImage.Format_Indexed8 if len(
-            img.shape) == 2 else QImage.Format_RGB888
-        outImage = QImage(img, img.shape[1],
-                          img.shape[0], img.strides[0], qformat)
-        outImage = outImage.rgbSwapped()
-        self.originalImageLabel.setPixmap(QPixmap.fromImage(outImage).scaled(
-            self.originalImageLabel.size(), Qt.KeepAspectRatio))  # type: ignore
-
-    def displayModifiedImage(self, img):
-        """Atualiza o QLabel com uma nova imagem editada."""
-        qformat = QImage.Format_Indexed8 if len(
-            img.shape) == 2 else QImage.Format_RGB888
-        outImage = QImage(img, img.shape[1],
-                          img.shape[0], img.strides[0], qformat)
-        outImage = outImage.rgbSwapped()
-        self.modifiedImageLabel.setPixmap(QPixmap.fromImage(outImage).scaled(
-            self.modifiedImageLabel.size(), Qt.KeepAspectRatio))  # type: ignore
-
-    def loadImage(self):
-        imagePath, _ = QFileDialog.getOpenFileName()
-        if imagePath:
-            self.image = cv2.imread(imagePath)
-            self.modified_image = self.image.copy()
-            self.displayOriginalImage(self.image)
-            self.displayModifiedImage(self.modified_image)
-
-    def convertToBlackWhite(self):
-        if self.image is not None:
-            gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
-            (thresh, blackWhite) = cv2.threshold(
-                gray, 127, 255, cv2.THRESH_BINARY)
-            self.modified_image = blackWhite
-            self.displayModifiedImage(self.modified_image)
-
-    def rotateImage(self):
-        if self.image is not None:
-            height, width = self.image.shape[:2]
-            center = (width // 2, height // 2)
-            rotate_matrix = cv2.getRotationMatrix2D(
-                center=center, angle=90, scale=1)
-            rotated_image = cv2.warpAffine(
-                src=self.image, M=rotate_matrix, dsize=(width, height))
-            self.modified_image = rotated_image
-            self.displayModifiedImage(self.modified_image)
-
-    def scaleImage(self):
-        if self.image is not None:
-            scaled_image = cv2.resize(
-                self.image, None, fx=0.5, fy=0.5, interpolation=cv2.INTER_LINEAR)
-            self.modified_image = scaled_image
-            self.displayModifiedImage(self.modified_image)
-
-    def translateImage(self):
-        if self.image is not None:
-            translation_matrix = np.float32([[1, 0, 100], [0, 1, 50]])  # type: ignore
-            translated_image = cv2.warpAffine(
-                self.image, translation_matrix, (self.image.shape[1], self.image.shape[0]))  # type: ignore
-            self.modified_image = translated_image
-            self.displayModifiedImage(self.modified_image)
-
-    def flipOriginalImage(self):
-        if self.image is not None:
-            flipped_image = cv2.flip(self.image, 1)  # Horizontal flip
-            self.image = flipped_image
-            self.displayOriginalImage(self.image)
-
-    def flipModifiedImage(self):
-        if self.modified_image is not None:
-            flipped_image = cv2.flip(self.modified_image, 1)  # Horizontal flip
-            self.modified_image = flipped_image
-            self.displayModifiedImage(self.modified_image)
-
-    def resetModifiedImage(self):
-        if self.image is not None:
-            self.modified_image = self.image.copy()
-            self.displayModifiedImage(self.modified_image)
-
-    def saveImage(self):
-        if self.modified_image is not None:
-            imagePath, _ = QFileDialog.getSaveFileName()
-            if imagePath:
-                cv2.imwrite(imagePath, self.modified_image)
+    def save_image(self):
+        """ Salvar a imagem modificada """
+        if self.image:
+            file_path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[(
+                "PNG files", "*.png"), ("JPEG files", "*.jpg"), ("All files", "*.*")])
+            if file_path:
+                self.image.save(file_path)
+        else:
+            messagebox.showerror("Erro", "Nenhuma imagem para salvar!")
 
 
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    ex = ImageApp()
-    ex.show()
-    sys.exit(app.exec_())
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = ImageEditorApp(root)
+    root.mainloop()
