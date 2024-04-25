@@ -111,8 +111,7 @@ class ImageEditorApp:
 
         # Atualizando o tamanho da imagem exibido na label
         if self.image:
-            self.image_size_label.config(text=f"Tamanho da Imagem: {
-                                         self.image.width}x{self.image.height}")
+            self.image_size_label.config(text=f"Tamanho da Imagem: { self.image.width}x{self.image.height}")
         else:
             self.image_size_label.config(text="Tamanho da Imagem: ")
 
