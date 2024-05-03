@@ -1,5 +1,3 @@
-#O código foi atualizado com algumas funções novas e levemente customizado!!
-
 import tkinter as tk
 from tkinter import filedialog, simpledialog, messagebox
 from PIL import Image, ImageTk, ImageOps
@@ -9,21 +7,21 @@ import numpy as np
 class ImageEditorApp:
     MAX_WIDTH = 1920
     MAX_HEIGHT = 1080
-    DISPLAY_WIDTH = 630
-    DISPLAY_HEIGHT = 360
+    DISPLAY_WIDTH = 600
+    DISPLAY_HEIGHT = 320
 
     def __init__(self, root):
         self.root = root
         self.root.title("Editor de Imagens Avançado")
-        # Alterando o fundo geral do aplicativo para um cinza mais claro
         self.root.configure(bg="#003c5f")
 
-        # Fonte para os títulos
         title_font = ("Helvetica", 16, "bold")
 
-        # Frame para a imagem original
+        self.main_frame = tk.Frame(root, bg="#003c5f")
+        self.main_frame.grid(row=0, column=0, sticky="nsew")
+
         self.original_frame = tk.Frame(
-            root, bg="#ffffff", padx=10, pady=10, borderwidth=1, relief="solid")
+            self.main_frame, bg="#ffffff", padx=10, pady=10, borderwidth=1, relief="solid")
         self.original_frame.grid(
             row=0, column=0, padx=10, pady=10, sticky="nsew")
         self.original_img_label = tk.Label(
@@ -32,9 +30,8 @@ class ImageEditorApp:
         self.original_img_widget = tk.Label(self.original_frame, bg="#ffffff")
         self.original_img_widget.grid(row=1, column=0, padx=10, pady=5)
 
-        # Frame para a imagem editável
         self.editable_frame = tk.Frame(
-            root, bg="#ffffff", padx=10, pady=10, borderwidth=1, relief="solid")
+            self.main_frame, bg="#ffffff", padx=10, pady=10, borderwidth=1, relief="solid")
         self.editable_frame.grid(
             row=0, column=1, padx=10, pady=10, sticky="nsew")
         self.editable_img_label = tk.Label(
@@ -43,25 +40,19 @@ class ImageEditorApp:
         self.editable_img_widget = tk.Label(self.editable_frame, bg="#ffffff")
         self.editable_img_widget.grid(row=1, column=0, padx=10, pady=5)
 
-        # Label para exibir as dimensões da imagem
         self.image_size_label = tk.Label(
-            root, text="Tamanho da Imagem: ", bg="#0f79ba", font=("Helvetica", 12))
+            self.main_frame, text="Tamanho da Imagem: ", bg="#0f79ba", font=("Helvetica", 12))
         self.image_size_label.grid(
-            row=1, column=1, padx=10, pady=5, sticky="w")
+            row=1, column=0, columnspan=2, padx=10, pady=5, sticky="ew")
 
-        # Frame para os botões
-        # Alterando a cor do fundo dos botões para um cinza mais claro
-        self.button_frame = tk.Frame(root, bg="#0f79ba")
+        self.button_frame = tk.Frame(self.main_frame, bg="#0f79ba")
         self.button_frame.grid(row=2, column=0, columnspan=2,
                                sticky="we", padx=10, pady=10)
 
-        # Botões
-        self.create_button("Carregar Imagem", self.load_image)
-        self.create_button("Resetar", self.reset_image)
+        self.create_button("Carregar Imagem", self.load_image, side=tk.LEFT)
+        self.create_button("Resetar", self.reset_image, side=tk.RIGHT)
 
-        # Frame para os botões de opções
-        # Alterando a cor do fundo dos botões de opções para um cinza mais claro
-        self.option_button_frame = tk.Frame(root, bg="#0f79ba")
+        self.option_button_frame = tk.Frame(self.main_frame, bg="#0f79ba")
         self.option_button_frame.grid(
             row=3, column=0, columnspan=2, sticky="we", padx=10, pady=10)
 
@@ -80,43 +71,55 @@ class ImageEditorApp:
         self.create_button("Salvar Imagem", self.save_image,
                            self.option_button_frame)
 
-        # Variáveis para armazenar a imagem original e editável
         self.original_image = None
         self.image = None
 
-    def create_button(self, text, command, parent_frame=None):
-        """ Helper para criar botões """
+        root.grid_rowconfigure(0, weight=1)
+        root.grid_columnconfigure(0, weight=1)
+        self.main_frame.grid_rowconfigure(0, weight=1)
+        self.main_frame.grid_columnconfigure(0, weight=1)
+        self.main_frame.grid_columnconfigure(1, weight=1)
+
+    def create_button(self, text, command, parent_frame=None, side=tk.LEFT):
         frame = parent_frame if parent_frame else self.button_frame
         btn = tk.Button(frame, text=text, command=command, bg="#0f79ba", fg="#ffffff", font=(
             "Helvetica", 12), padx=10, pady=5, bd=0, relief="flat", highlightthickness=0, cursor="hand2", borderwidth=3)
-        btn.pack(side=tk.LEFT, padx=5, pady=5)
+        btn.pack(side=side, padx=5, pady=5)
 
     def load_image(self):
-        """ Carregar e exibir imagem """
         file_path = filedialog.askopenfilename()
         if file_path:
             original_image = Image.open(file_path)
+            # Redimensionar a imagem original para se ajustar ao tamanho do quadro disponível
+            original_image.thumbnail((self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT))
             self.original_image = original_image.copy()
             self.image = self.original_image.copy()
             self.update_images()
 
     def update_images(self):
-        """ Atualizar a exibição das imagens """
-        self.original_photo = ImageTk.PhotoImage(self.original_image.resize(
-            (self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT)))
-        self.photo = ImageTk.PhotoImage(self.image.resize(
-            (self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT)))
+        # Obter as dimensões do quadro em que as imagens serão exibidas
+        frame_width = self.DISPLAY_WIDTH
+        frame_height = self.DISPLAY_HEIGHT
+
+        # Redimensionar a imagem original e a imagem editada para se ajustarem ao tamanho do quadro
+        original_image_resized = self.original_image.resize((frame_width, frame_height))
+        edited_image_resized = self.image.resize((frame_width, frame_height))
+
+        # Converter as imagens para o formato PhotoImage
+        self.original_photo = ImageTk.PhotoImage(original_image_resized)
+        self.photo = ImageTk.PhotoImage(edited_image_resized)
+
+        # Configurar os widgets de imagem para exibir as imagens redimensionadas
         self.original_img_widget.config(image=self.original_photo)
         self.editable_img_widget.config(image=self.photo)
 
-        # Atualizando o tamanho da imagem exibido na label
+        # Atualizar a label que exibe o tamanho da imagem
         if self.image:
-            self.image_size_label.config(text=f"Tamanho da Imagem: { self.image.width}x{self.image.height}")
+            self.image_size_label.config(text=f"Tamanho da Imagem: {frame_width}x{frame_height}")
         else:
             self.image_size_label.config(text="Tamanho da Imagem: ")
 
     def transform_image(self, action):
-        """ Aplicar transformações na imagem """
         if self.image:
             if action == "rotate_90":
                 self.image = self.image.rotate(90, expand=True)
@@ -131,20 +134,18 @@ class ImageEditorApp:
             messagebox.showerror("Erro", "Nenhuma imagem carregada!")
 
     def translate_image(self):
-        """ Transladar a imagem """
         if self.image:
-            x = simpledialog.askinteger(
-                "Transladar", "X offset:", parent=self.root)
-            y = simpledialog.askinteger(
-                "Transladar", "Y offset:", parent=self.root)
+            x = simpledialog.askinteger("Transladar", "X offset:", parent=self.root)
+            y = simpledialog.askinteger("Transladar", "Y offset:", parent=self.root)
             if x is not None and y is not None:
+                # Crie uma nova imagem do mesmo tamanho que a imagem original
                 translated = Image.new("RGB", self.image.size)
+                # Cole a imagem original na nova imagem com o deslocamento (x, y)
                 translated.paste(self.image, (x, y))
                 self.image = translated
                 self.update_images()
 
     def resize_image(self):
-        """ Redimensionar a imagem """
         if self.image:
             width = simpledialog.askinteger(
                 "Redimensionar", "Nova largura:", parent=self.root)
@@ -158,13 +159,11 @@ class ImageEditorApp:
                 self.update_images()
 
     def reset_image(self):
-        """ Resetar a imagem para o original """
         if self.original_image:
             self.image = self.original_image.copy()
             self.update_images()
 
     def save_image(self):
-        """ Salvar a imagem modificada """
         if self.image:
             file_path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=[(
                 "PNG files", "*.png"), ("JPEG files", "*.jpg"), ("All files", "*.*")])
