@@ -272,31 +272,19 @@ class ImageEditorApp:
             matrix_window = tk.Toplevel(self.root)
             matrix_window.title("Matriz da Imagem")
             matrix_window.configure(bg="#d8bfd8")
-            matrix_window.geometry("600x600")
+            matrix_window.geometry("550x500")
 
-            header_font = ("Helvetica", 14, "bold")
-            explanation_font = ("Helvetica", 12)
-
-            matrix_info_header = "Informações sobre a Matriz da Imagem\n"
             matrix_info = (
                 "Uma matriz é uma estrutura de dados bidimensional composta por linhas e colunas. "
                 "Na computação gráfica, uma imagem pode ser representada como uma matriz, "
                 "onde cada elemento da matriz representa um pixel da imagem. "
                 "Os valores contidos na matriz determinam a intensidade das cores vermelha, verde e azul "
                 "(no caso de imagens RGB) ou a intensidade do cinza (no caso de imagens em escala de cinza).\n\n"
-                "Abaixo está uma versão reduzida (3x3) da matriz da imagem editada:"
+                f"Matriz da imagem editada ({image_array.shape[0]} linhas x {image_array.shape[1]} colunas):\n"
             )
 
-            explanation_frame = tk.Frame(matrix_window, bg="#d8bfd8")
-            explanation_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-
-            explanation_label = tk.Label(explanation_frame, text=matrix_info_header, bg="#d8bfd8", font=header_font, justify=tk.LEFT)
-            explanation_label.pack(anchor="w")
-
-            explanation_text = tk.Text(explanation_frame, wrap=tk.WORD, bg="#ffffff", font=explanation_font, height=10)
-            explanation_text.pack(fill=tk.BOTH, expand=True)
-            explanation_text.insert(tk.END, matrix_info)
-            explanation_text.config(state=tk.DISABLED)
+            matrix_label = tk.Label(matrix_window, text=matrix_info, bg="#d8bfd8", justify=tk.LEFT)
+            matrix_label.pack(padx=10, pady=10)
 
             matrix_text = tk.Text(matrix_window, wrap=tk.WORD, bg="#ffffff", font=("Courier New", 10))
             matrix_text.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
